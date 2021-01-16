@@ -1,0 +1,27 @@
+"Phrases"
+{	
+	"respawn_manager_error"
+	{
+		"sv"		"Du bör använda detta kommando ingame"
+	}
+	"respawn_manager_noaccess"
+	{
+		"sv"		"Du har inte åtkomst till kommandot"
+	}
+	
+	"respawn_manager_message"
+	{
+		"#format"	"{1:.f}"
+		"sv"		"Du kommer omskapas om {1} sekunder"
+	}
+	
+	"respawn_manager_respawn_usage"
+	{
+		"sv"		"Användning: sm_respawn <#userid|target name>"
+	}
+	"respawn_manager_respawn"
+	{
+		"#format"	"{1:s}"
+		"sv"		"Du {orange}Omskapade {1}"
+	}
+}

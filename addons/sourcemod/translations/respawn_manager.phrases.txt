@@ -1,0 +1,27 @@
+"Phrases"
+{	
+	"respawn_manager_error"
+	{
+		"en"		"You may only use this command ingame"
+	}
+	"respawn_manager_noaccess"
+	{
+		"en"		"You don't have access to this command"
+	}
+	
+	"respawn_manager_message"
+	{
+		"#format"	"{1:.f}"
+		"en"		"You will be respawned in {1} seconds"
+	}
+	
+	"respawn_manager_respawn_usage"
+	{
+		"en"		"Usage: sm_respawn <#userid|target name>"
+	}
+	"respawn_manager_respawn"
+	{
+		"#format"	"{1:s}"
+		"en"		"You {orange}Respawned {1}"
+	}
+}
