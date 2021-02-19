@@ -1,19 +1,6 @@
 #include	<multicolors>
 
-#include	<tf2_stocks>
-#include	<cstrike>
-
-public	Extension	__ext_tf2	=	{
-	name		=	"TF2 Tools",	//This allows any game to load without "TF2 Tools Extension is required" error on plugin startup
-	file		=	"game.tf2.ext",	//since the other games doesn't use the tf2 natives and the extension is automatically loaded
-	required	=	0				//when server is running team fortress 2
-};
-
-public	Extension	__ext_cstrike	=	{
-	name		=	"cstrike",
-	file		=	"games/game.cstrike.ext",
-	required	=	0
-};
+#include	<tk>
 
 #pragma		semicolon	1
 #pragma		newdecls	required
@@ -24,7 +11,7 @@ public	Plugin	myinfo	=	{
 	name		=	"[ANY] Respawn Manager",
 	author		=	"Tk /id/Teamkiller324",
 	description	=	"Manages the respawns",
-	version		=	"1.0.1",
+	version		=	"1.1.1",
 	url			=	"https://steamcommunity.com/id/Teamkiller324"
 }
 
@@ -48,13 +35,9 @@ ConVar	respawn_mgr,
 		respawn_cs_ct;
 		
 //Get the flags
-char	owner_flag_string[16],
-		admin_flag_string[16],
-		vip_flag_string[16];
-	
-int		owner_flag,
-		admin_flag,
-		vip_flag;
+char	owner_flag_string[32],
+		admin_flag_string[32],
+		vip_flag_string[32];
 
 public	void	OnPluginStart()	{
 	//Translations
@@ -85,7 +68,7 @@ public	void	OnPluginStart()	{
 			//>TF2  - Team Fortress 2
 			respawn_tf2_red	=	CreateConVar("sm_respawn_manager_red",		"5",	"Respawn time for red team",	FCVAR_NOTIFY,	true,	0.0);
 			respawn_tf2_blu	=	CreateConVar("sm_respawn_manager_blu",		"5",	"Respawn time for blue team",	FCVAR_NOTIFY,	true,	0.0);
-			char	game[16];
+			char	game[32];
 			GetGameFolderName(game,	sizeof(game));
 			if(StrEqual(game,	"tf2classic"))	{
 				//>TF2C - Team Fortress 2 Classic
@@ -104,14 +87,10 @@ public	void	OnPluginStart()	{
 	//Events
 	HookEvent("player_death",	Event_PlayerDeath,	EventHookMode_Pre);
 	
-	//Flags
-	owner_flag	=	ReadFlagString(owner_flag_string),
-	admin_flag	=	ReadFlagString(admin_flag_string),
-	vip_flag	=	ReadFlagString(vip_flag_string);
-	
-	GetConVarString(respawn_owner_flag,	owner_flag_string,	sizeof(owner_flag_string));
-	GetConVarString(respawn_admin_flag,	admin_flag_string,	sizeof(admin_flag_string));
-	GetConVarString(respawn_vip_flag,	vip_flag_string,	sizeof(vip_flag_string));
+	//Flags	
+	respawn_owner_flag.GetString(owner_flag_string,	sizeof(owner_flag_string));
+	respawn_admin_flag.GetString(admin_flag_string,	sizeof(admin_flag_string));
+	respawn_vip_flag.GetString(vip_flag_string,	sizeof(vip_flag_string));
 	
 	AutoExecConfig(true,	"respawn_manager");
 }
@@ -121,64 +100,57 @@ Action	Event_PlayerDeath(Event event,	const char[] name,	bool dontBroadcast)	{
 	int	client	=	GetClientOfUserId(event.GetInt("userid"));
 		
 	if(respawn_mgr.BoolValue)	{
-		if(IsClientOwner(client) && respawn_owner_enabled.BoolValue)
+		if(IsClientFlag(client, ReadFlagString(owner_flag_string)) && respawn_owner_enabled.BoolValue)
 			RespawnClientTimer(client,	GetConVarFloat(respawn_owner));
-		else if(IsClientAdmin(client) && respawn_admin_enabled.BoolValue)
+		else if(IsClientFlag(client, ReadFlagString(admin_flag_string)) && respawn_admin_enabled.BoolValue)
 			RespawnClientTimer(client,	GetConVarFloat(respawn_admin));
-		else if(IsClientVip(client) && respawn_vip_enabled.BoolValue)
+		else if(IsClientFlag(client, ReadFlagString(vip_flag_string)) && respawn_vip_enabled.BoolValue)
 			RespawnClientTimer(client,	GetConVarFloat(respawn_vip));
-		else if(respawn_owner_enabled.BoolValue == false || respawn_admin_enabled.BoolValue == false || respawn_vip_enabled.BoolValue == false)	{
-			if((event.GetInt("death_flags") & TF_DEATHFLAG_DEADRINGER) == TF_DEATHFLAG_DEADRINGER)
-				return Plugin_Continue;
-			else	{
-				switch(GetEngineVersion())	{
-					case	Engine_TF2:	{
-						switch(GetClientTeam(client))	{
-							case	2:	RespawnClientTimer(client,	GetConVarFloat(respawn_tf2_red));
-							case	3:	RespawnClientTimer(client,	GetConVarFloat(respawn_tf2_blu));
-							case	4:	RespawnClientTimer(client,	GetConVarFloat(respawn_tf2_grn));
-							case	5:	RespawnClientTimer(client,	GetConVarFloat(respawn_tf2_ylw));
-						}
+		else	{
+			switch(GetEngineVersion())	{
+				case	Engine_TF2:	{
+					if((event.GetInt("death_flags") & TF_DEATHFLAG_DEADRINGER) == TF_DEATHFLAG_DEADRINGER)
+						return	Plugin_Continue;
+						
+					switch(TF2_GetClientTeam(client))	{
+						case	TFTeam_Red:		RespawnClientTimer(client,	GetConVarFloat(respawn_tf2_red));
+						case	TFTeam_Blue:	RespawnClientTimer(client,	GetConVarFloat(respawn_tf2_blu));
+						case	TFTeam_Green:	RespawnClientTimer(client,	GetConVarFloat(respawn_tf2_grn));
+						case	TFTeam_Yellow:	RespawnClientTimer(client,	GetConVarFloat(respawn_tf2_ylw));
 					}
-					case	Engine_CSS,Engine_CSGO:	{
-						switch(GetClientTeam(client))	{
-							case	2:	RespawnClientTimer(client,	GetConVarFloat(respawn_cs_t));
-							case	3:	RespawnClientTimer(client,	GetConVarFloat(respawn_cs_ct));
-						}
+				}
+				case	Engine_CSS,Engine_CSGO:	{
+					switch(CS_GetClientTeam(client))	{
+						case	CSTeam_Terrorists:	RespawnClientTimer(client,	GetConVarFloat(respawn_cs_t));
+						case	CSTeam_CTerrorists:	RespawnClientTimer(client,	GetConVarFloat(respawn_cs_ct));
 					}
 				}
 			}
 		}
 	}
-		
 	return	Plugin_Continue;
 }
 
 void	RespawnClientTimer(int client,	float time)	{
 	CreateTimer(time,	RespawnClient,	client);
-	if(respawn_msg.BoolValue && time > 1)
-		PrintHintText(client,	"%s",	"respawn_manager_message",	time);
+	if(respawn_msg.BoolValue && time > 2)
+		PrintHintText(client,	"%t",	"respawn_manager_message",	time);
 }
 
 Action	RespawnClient(Handle timer,	any client)	 {
 	if(IsValidClient(client))	{
 		switch(GetEngineVersion())	{
 			case	Engine_TF2:	TF2_RespawnPlayer(client);
-			case	Engine_CSS,Engine_CSGO: CS_RespawnPlayer(client);
+			case	Engine_CSS,Engine_CSGO:	CS_RespawnPlayer(client);
 		}
 	}
 }
 
 //Commands
 Action	RespawnCmd(int client,	int args)	{
-	if(respawn_cmd.BoolValue)	{
-		if(!IsValidClient(client))	{
-			CReplyToCommand(client,	"%s %s",	TAG,	"respawn_manager_error");
-			return	Plugin_Handled;
-		}
-		
+	if(respawn_cmd.BoolValue)	{		
 		if(args != 1)	{
-			CPrintToChat(client,	"%s %s",	TAG,	"respawn_manager_respawn_usage");
+			CPrintToChat(client,	"%s %t",	TAG,	"respawn_manager_respawn_usage");
 			return	Plugin_Handled;
 		}
 		
@@ -194,7 +166,7 @@ Action	RespawnCmd(int client,	int args)	{
 			client,
 			target_list,
 			MAXPLAYERS,
-			COMMAND_FILTER_ALIVE,
+			COMMAND_FILTER_CONNECTED,
 			target_name,
 			sizeof(target_name),
 			tn_is_ml)) <= 0)
@@ -203,39 +175,27 @@ Action	RespawnCmd(int client,	int args)	{
 			return Plugin_Handled;
 		}
 		
-		for(int i = 0; i < target_count; i++)
-		{
-			RespawnClientTimer(client,	0.2);
-			CPrintToChat(client,	"%s %s",	TAG,	"respawn_manager_respawn",	target_name);
+		for(int i = 0; i < target_count; i++)	{
+			int target = target_list[i];
+			if(IsValidClient(target, false))
+				RespawnTime(target,	0.2);
+			CPrintToChat(client,	"%s %t",	TAG,	"respawn_manager_respawn",	target_name);
 		}
 	}
 	return	Plugin_Handled;
 }
 
 //Checks the clients validity
-stock	bool	IsClientOwner(int client)	{
-	if(CheckCommandAccess(client,	"",	owner_flag,		false))	return	true;
-	return	false;
-}
-
-stock	bool	IsClientModerator(int client)	{	//Unused atm
-	if(CheckCommandAccess(client,	"",	ADMFLAG_CUSTOM1,	false))	return	true;
-	return	false;
-}
-
-stock	bool	IsClientAdmin(int client)	{
-	if(CheckCommandAccess(client,	"",	admin_flag,	false))	return	true;
-	return	false;
-}
-
-stock	bool	IsClientVip(int client)	{
-	if(CheckCommandAccess(client,	"",	vip_flag,	false))	return	true;
-	return	false;
-}
-
-stock	bool	IsValidClient(int client)	{
-	if(IsClientInGame(client))		return	true;
-	if(!IsPlayerAlive(client))		return	true;
-	if(client != 0)					return	true;
-	return	false;
+stock	bool	IsValidClient(int client, bool CheckAlive=true)	{
+	if(!IsClientInGame(client))
+		return	false;
+	if(client < 1 || client > MaxClients)
+		return	false;
+	if(CheckAlive)	{
+		if(IsPlayerAlive(client))
+			return	false;
+	}
+	if(GetClientTeam(client) < 2)
+		return	false;
+	return	true;
 }
